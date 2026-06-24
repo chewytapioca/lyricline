@@ -1,44 +1,54 @@
-/* ── Kawaii design tokens ──────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Happy+Monkey&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
 :root {
-  --font:        'DM Sans', -apple-system, sans-serif;
-  --bg:          #FFF8FC;
-  --card:        #FFF2F8;
-  --border:      #F2D4E4;
-  --ink:         #3D2030;
-  --ink-muted:   #9C7085;
-  --ink-xlight:  #C4A0B5;
-  --pink:        #D4537E;
-  --pink-light:  #ED93B1;
-  --pink-pale:   #FBE8F2;
-  --green:       #7CB98F;
-  --purple:      #9B8EC4;
-  --radius:      16px;
+  --bg:       #f5f0e8;
+  --bg2:      #ede6d8;
+  --card:     #faf8f3;
+  --border:   #d8cfc0;
+  --ink:      #3a2e22;
+  --ink2:     #7a6a58;
+  --ink3:     #b0a090;
+  --brown:    #8b6a50;
+  --brownd:   #5c3d28;
+  --brownl:   #c4a882;
+  --cream:    #fdf9f2;
+  --font:     'Happy Monkey', cursive;
+  --fontui:   'Space Grotesk', sans-serif;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-
 html, body {
-  margin: 0; padding: 0;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  cursor: url("data:image/png;base64,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") 20 20, auto;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 18px,
+    rgba(180,160,130,0.07) 18px,
+    rgba(180,160,130,0.07) 19px
+  );
 }
 
-/* Thin scrollbar */
-::-webkit-scrollbar        { width: 4px; }
-::-webkit-scrollbar-track  { background: transparent; }
-::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 999px; }
-
-a { color: var(--pink); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-input, button { font-family: inherit; font-size: inherit; }
+input, button, select, textarea { font-family: inherit; font-size: inherit; }
 input:focus { outline: none; }
+a { color: var(--brown); text-decoration: none; }
 
-/* Soft dot pattern background */
-body {
-  background-image: radial-gradient(var(--border) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-attachment: fixed;
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+@keyframes bob    { 0%,100%{transform:translateY(0) rotate(-1deg);}  50%{transform:translateY(-10px) rotate(-1deg);} }
+@keyframes bobcd  { 0%,100%{transform:translateY(0) rotate(4deg);}   50%{transform:translateY(-7px)  rotate(7deg);} }
+@keyframes wv     { 0%,100%{height:3px;opacity:.25;} 50%{height:var(--pk);opacity:.75;} }
+@keyframes nr     { 0%{opacity:0;transform:translateY(0);} 15%{opacity:.55;} 85%{opacity:.15;} 100%{opacity:0;transform:translateY(-55px);} }
+@keyframes spin   { to{transform:rotate(360deg);} }
+@keyframes blink  { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation:none!important; transition:none!important; }
 }

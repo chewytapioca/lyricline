@@ -4,7 +4,21 @@ import { Timeline } from './components/Timeline';
 import { SongDetail } from './components/SongDetail';
 import { useArtist } from './hooks/useArtist';
 import { useSong } from './hooks/useSong';
+import LandingPage from './LandingPage';
 import type { SearchResult } from '@shared/types';
+
+const C = {
+  bg:     '#f5f0e8',
+  card:   '#faf8f3',
+  border: '#d8cfc0',
+  ink:    '#3a2e22',
+  ink2:   '#7a6a58',
+  ink3:   '#b0a090',
+  brown:  '#8b6a50',
+  brownd: '#5c3d28',
+  brownl: '#c4a882',
+  cream:  '#fdf9f2',
+};
 
 export default function App() {
   const [selectedArtist, setSelectedArtist] = useState<SearchResult | null>(null);
@@ -13,132 +27,81 @@ export default function App() {
   const { artist, loading: artistLoading, error: artistError } = useArtist(selectedArtist?.id ?? null);
   const { song, loading: songLoading, error: songError, fetch: fetchSong, clear: clearSong } = useSong();
 
-  const handleArtistSelect = (result: SearchResult) => {
-    setSelectedArtist(result);
-    setSelectedSongId(null);
-    clearSong();
-  };
-
-  const handleSongClick = (songMbid: string, title: string) => {
-    if (!selectedArtist) return;
-    setSelectedSongId(songMbid);
-    void fetchSong(songMbid, title, selectedArtist.name);
-  };
+  const handleArtistSelect = (r: SearchResult) => { setSelectedArtist(r); setSelectedSongId(null); clearSong(); };
+  const handleSongClick = (mbid: string, title: string) => { if (!selectedArtist) return; setSelectedSongId(mbid); void fetchSong(mbid, title, selectedArtist.name); };
+  const handleLogoClick = () => { setSelectedArtist(null); clearSong(); };
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: 'var(--font)' }}>
+    <div style={{minHeight:'100vh', background:C.bg, color:C.ink}}>
 
-      {/* Nav */}
-      <header style={{
-        borderBottom: '1.5px solid var(--border)',
-        padding: '0.9rem 2rem',
-        display: 'flex', alignItems: 'center', gap: '1.5rem',
-        position: 'sticky', top: 0,
-        background: 'rgba(255,248,252,0.92)',
-        backdropFilter: 'blur(16px)',
-        zIndex: 10,
-      }}>
-        <div
-          onClick={() => { setSelectedArtist(null); clearSong(); }}
-          style={{ cursor: 'pointer', userSelect: 'none' }}
-        >
+      {selectedArtist && (
+        <header style={{
+          height:48, padding:'0 20px',
+          display:'flex', alignItems:'center', gap:14,
+          borderBottom:`1px solid ${C.border}`,
+          background:`${C.cream}ee`, backdropFilter:'blur(10px)',
+          position:'sticky', top:0, zIndex:10,
+        }}>
+          <button onClick={handleLogoClick} style={{background:'none',border:'none',cursor:'pointer',padding:0,flexShrink:0}}>
+            <span style={{fontFamily:"'Space Grotesk', sans-serif", fontSize:14, fontWeight:700, color:C.brownd, letterSpacing:'-0.02em'}}>
+              lyric<span style={{color:C.brown}}>line</span>
+            </span>
+          </button>
+          <div style={{flex:1, maxWidth:360}}>
+            <SearchBar onSelect={handleArtistSelect}/>
+          </div>
           <span style={{
-            fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)',
-            letterSpacing: '-0.02em',
+            fontFamily:"'Space Grotesk', sans-serif", fontSize:10, fontWeight:600,
+            padding:'3px 10px', borderRadius:99,
+            border:`1px solid ${C.border}`, color:C.ink2,
+            background:C.card, whiteSpace:'nowrap',
           }}>
-            lyricline
+            {selectedArtist.name}
           </span>
-        </div>
-        <div style={{ flex: 1, maxWidth: 400 }}>
-          <SearchBar onSelect={handleArtistSelect} />
-        </div>
-      </header>
+        </header>
+      )}
 
-      <main style={{ padding: '2rem', maxWidth: 1100, margin: '0 auto' }}>
-        {!selectedArtist && (
-          <div style={{ textAlign: 'center', paddingTop: '6rem', color: 'var(--ink-muted)' }}>
-            <div style={{
-              display: 'inline-block',
-              width: 64, height: 64,
-              background: 'var(--pink-pale)',
-              border: '2px solid var(--border)',
-              borderRadius: '50%',
-              lineHeight: '64px',
-              fontSize: '1.75rem',
-              marginBottom: '1.5rem',
-              color: 'var(--pink)',
-            }}>
-              ♪
-            </div>
-            <p style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '0.5rem' }}>
-              search an artist to explore their lyric timeline
-            </p>
-            <p style={{ fontSize: '0.82rem', color: 'var(--ink-muted)' }}>
-              works with K-pop, J-pop, English, and mixed-language artists
-            </p>
-          </div>
-        )}
+      {!selectedArtist && <LandingPage onArtistSelect={handleArtistSelect}/>}
 
-        {selectedArtist && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+      {selectedArtist && (
+        <main style={{padding:'1.5rem', maxWidth:1100, margin:'0 auto'}}>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1.25rem', alignItems:'start'}}>
             <div>
-              {artistLoading && <LoadingState label="loading discography…" />}
-              {artistError  && <ErrorState message={artistError.message} />}
-              {artist && (
-                <Timeline
-                  artist={artist}
-                  selectedSongId={selectedSongId}
-                  onSongClick={handleSongClick}
-                />
-              )}
+              {artistLoading && <Spinner label="loading discography (｡◕‿◕)"/>}
+              {artistError   && <Err msg={artistError.message}/>}
+              {artist && <Timeline artist={artist} selectedSongId={selectedSongId} onSongClick={handleSongClick}/>}
             </div>
             <div>
-              {songLoading && <LoadingState label="fetching lyrics & analysing mood…" />}
-              {songError   && <ErrorState message={songError} />}
-              {song && !songLoading && (
-                <SongDetail
-                  song={song}
-                  artistName={selectedArtist.name}
-                  onClose={clearSong}
-                />
-              )}
+              {songLoading && <Spinner label="fetching lyrics and analysing mood ♪"/>}
+              {songError   && <Err msg={songError}/>}
+              {song && !songLoading && <SongDetail song={song} artistName={selectedArtist.name} onClose={clearSong}/>}
             </div>
           </div>
-        )}
-      </main>
+        </main>
+      )}
     </div>
   );
 }
 
-function LoadingState({ label }: { label: string }) {
+function Spinner({ label }: { label: string }) {
   return (
-    <div style={{
-      padding: '2.5rem', textAlign: 'center',
-      background: 'white', borderRadius: 16,
-      border: '1.5px solid var(--border)',
-    }}>
+    <div style={{padding:'2rem', textAlign:'center', background:C.card, borderRadius:12, border:`1px solid ${C.border}`}}>
       <div style={{
-        width: 32, height: 32, borderRadius: '50%',
-        border: '2px solid var(--border)',
-        borderTopColor: 'var(--pink)',
-        margin: '0 auto 0.75rem',
-        animation: 'spin 1s linear infinite',
-      }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      <p style={{ fontSize: '0.8rem', color: 'var(--ink-muted)', margin: 0 }}>{label}</p>
+        width:22, height:22, borderRadius:'50%',
+        border:`2px solid ${C.border}`, borderTopColor:C.brown,
+        margin:'0 auto 0.6rem', animation:'spin 0.9s linear infinite',
+      }}/>
+      <p style={{fontFamily:"'Happy Monkey', cursive", fontSize:11, color:C.ink2, margin:0}}>{label}</p>
     </div>
   );
 }
 
-function ErrorState({ message }: { message: string }) {
+function Err({ msg }: { msg: string }) {
   return (
     <div style={{
-      padding: '1rem 1.25rem',
-      background: '#FEF2F2', borderRadius: 12,
-      border: '1px solid #FECACA',
-      color: '#991B1B', fontSize: '0.82rem',
-    }}>
-      {message}
-    </div>
+      padding:'0.75rem 1rem', borderRadius:8,
+      border:`1px solid #e8d0c0`, background:`#fdf0e8`,
+      fontFamily:"'Happy Monkey', cursive", fontSize:11.5, color:'#7a3a20',
+    }}>{msg}</div>
   );
 }

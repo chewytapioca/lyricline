@@ -2,9 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../lib/api';
 import type { SearchResult } from '@shared/types';
 
-interface Props {
-  onSelect: (result: SearchResult) => void;
-}
+const C = {
+  card:   '#faf8f3',
+  bg2:    '#ede6d8',
+  border: '#d8cfc0',
+  brownl: '#c4a882',
+  brownd: '#5c3d28',
+  ink2:   '#7a6a58',
+  ink3:   '#b0a090',
+};
+
+interface Props { onSelect: (result: SearchResult) => void; }
 
 export function SearchBar({ onSelect }: Props) {
   const [query,   setQuery]   = useState('');
@@ -12,6 +20,7 @@ export function SearchBar({ onSelect }: Props) {
   const [open,    setOpen]    = useState(false);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wrapRef  = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -22,9 +31,10 @@ export function SearchBar({ onSelect }: Props) {
       try {
         const data = await api.search(query);
         setResults(data);
-        setOpen(true);
+        setOpen(data.length > 0);
       } catch {
         setResults([]);
+        setOpen(false);
       } finally {
         setLoading(false);
       }
@@ -33,6 +43,16 @@ export function SearchBar({ onSelect }: Props) {
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [query]);
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const handleSelect = (r: SearchResult) => {
     setQuery(r.name);
     setOpen(false);
@@ -40,76 +60,113 @@ export function SearchBar({ onSelect }: Props) {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%' }}>
+
+      {/* input */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
-        background: 'white', border: '1.5px solid var(--border)',
-        borderRadius: 999, padding: '7px 16px',
-        boxShadow: '0 2px 8px rgba(180,140,160,0.08)',
-        transition: 'border-color 0.2s',
-      }}
-        onFocusCapture={e => e.currentTarget.style.borderColor = 'var(--pink-light)'}
-        onBlurCapture={e => e.currentTarget.style.borderColor = 'var(--border)'}
-      >
-        <span style={{ fontSize: 13, color: loading ? 'var(--pink)' : 'var(--ink-muted)', transition: 'color 0.2s' }}>
-          {loading ? '○' : '♪'}
+        background: 'white', border: `1px solid ${C.border}`,
+        borderRadius: 999, padding: '6px 14px',
+        boxShadow: 'inset 0 1px 3px rgba(90,60,30,0.05)',
+      }}>
+        <span style={{ fontSize: 13, color: C.ink3, flexShrink: 0 }}>
+          {loading ? '◌' : '♪'}
         </span>
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="search an artist…"
+          onFocus={() => { if (results.length > 0) setOpen(true); }}
+          placeholder="search an artist..."
           style={{
-            border: 'none', outline: 'none', background: 'transparent',
-            fontSize: '0.82rem', color: 'var(--ink)', width: '100%',
+            flex: 1, border: 'none', background: 'transparent',
+            fontSize: 13, color: C.brownd, outline: 'none',
+            fontFamily: "'Happy Monkey', cursive",
           }}
         />
         {query && (
           <button
-            onClick={() => { setQuery(''); setOpen(false); }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', fontSize: 12, padding: 0, lineHeight: 1 }}
-          >
-            ×
-          </button>
+            onClick={() => { setQuery(''); setResults([]); setOpen(false); }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: C.ink3, fontSize: 14, padding: 0, lineHeight: 1,
+            }}
+          >×</button>
         )}
       </div>
 
+      {/* dropdown — rendered in a portal-like fixed position to escape overflow:hidden */}
       {open && results.length > 0 && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
-          background: 'white', border: '1.5px solid var(--border)',
-          borderRadius: 14, overflow: 'hidden', zIndex: 20,
-          boxShadow: '0 8px 24px rgba(180,140,160,0.15)',
+          position: 'absolute',
+          top: 'calc(100% + 6px)',
+          left: 0, right: 0,
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 14,
+          overflow: 'hidden',
+          boxShadow: '0 8px 32px rgba(90,60,30,0.15)',
+          zIndex: 9999,          /* above the card and everything else */
         }}>
           {results.map((r, i) => (
             <button
               key={r.id}
               onClick={() => handleSelect(r)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                width: '100%', padding: '10px 14px', border: 'none',
-                background: 'transparent', cursor: 'pointer', textAlign: 'left',
-                borderBottom: i < results.length - 1 ? '1px solid var(--border)' : 'none',
+                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 12px', border: 'none', background: 'transparent',
+                cursor: 'pointer', textAlign: 'left',
+                borderTop: i > 0 ? `1px solid ${C.border}` : 'none',
                 transition: 'background 0.1s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--pink-pale)'}
+              onMouseEnter={e => e.currentTarget.style.background = C.bg2}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: 'var(--pink-pale)', border: '1px solid var(--border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.7rem', color: 'var(--pink)', fontWeight: 600, flexShrink: 0,
-              }}>
-                {r.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--ink)' }}>
+              {/* artist thumbnail */}
+              {r.imageUrl ? (
+                <img
+                  src={r.imageUrl}
+                  alt={r.name}
+                  style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    objectFit: 'cover', border: `1px solid ${C.border}`,
+                    flexShrink: 0,
+                  }}
+                  onError={e => {
+                    const t = e.target as HTMLImageElement;
+                    t.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div style={{
+                  width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+                  background: C.bg2, border: `1px solid ${C.border}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, color: C.brownl,
+                }}>♪</div>
+              )}
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 12.5, fontWeight: 600, color: C.brownd,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
                   {r.name}
                 </div>
-                <div style={{ fontSize: '0.68rem', color: 'var(--ink-muted)', marginTop: 1 }}>
+                <div style={{
+                  fontSize: 10.5, color: C.ink3,
+                  fontFamily: "'Happy Monkey', cursive", marginTop: 1,
+                }}>
                   {[r.country, ...r.genres.slice(0, 2)].filter(Boolean).join(' · ')}
                 </div>
               </div>
+
+              <span style={{
+                fontSize: 10, color: C.ink3, flexShrink: 0,
+                fontFamily: "'Space Grotesk', sans-serif",
+              }}>
+                {r.albumCount} releases
+              </span>
             </button>
           ))}
         </div>

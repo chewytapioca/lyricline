@@ -1,124 +1,107 @@
-/**
- * Genius lyric scraper
- *
- * Genius doesn't serve lyrics via their API — only page URLs.
- * Flow: search API → get song page URL → scrape lyrics with cheerio.
- *
- * Docs: https://docs.genius.com/
- */
-
 import * as cheerio from 'cheerio';
 import { env } from '../lib/env.js';
 import { cacheGet, cacheSet, CacheKey } from '../cache/redis.js';
 
 const GENIUS_API = 'https://api.genius.com';
+const GENIUS_HEADERS = {
+  Authorization: `Bearer ${env.GENIUS_TOKEN}`,
+};
 
-// ── Search Genius for a song, return its page URL ─────────────────────────────
+// ── Artist image (for search results) ────────────────────────────────────────
 
-export async function getLyrics(
-  songTitle: string,
-  artistName: string,
-): Promise<string | null> {
-  const cacheKey = CacheKey.songLyrics(`${artistName}:${songTitle}`);
-  const cached   = await cacheGet<string>(cacheKey);
-  if (cached) return cached;
+export async function getArtistImageFromGenius(artistName: string): Promise<string | null> {
+  const cacheKey = `genius:artist-img:${artistName.toLowerCase().trim()}`;
+  const cached = await cacheGet<string>(cacheKey);
+  if (cached !== null) return cached;
 
-  const pageUrl = await findGeniusPageUrl(songTitle, artistName);
-  if (!pageUrl) return null;
-
-  const lyrics = await scrapeLyricsFromPage(pageUrl);
-  if (!lyrics) return null;
-
-  // Lyrics are deterministic — cache forever
-  await cacheSet(cacheKey, lyrics, -1);
-  return lyrics;
-}
-
-async function findGeniusPageUrl(
-  songTitle: string,
-  artistName: string,
-): Promise<string | null> {
-  const query = `${artistName} ${songTitle}`;
-  const url   = `${GENIUS_API}/search?q=${encodeURIComponent(query)}`;
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${env.GENIUS_TOKEN}` },
-  });
-
-  if (!res.ok) {
-    console.warn(`[genius] search failed ${res.status} for: ${query}`);
-    return null;
-  }
-
-  const data = await res.json() as GeniusSearchResponse;
-  const hits  = data.response.hits;
-
-  // Find the best match: prefer exact artist name match
-  const best = hits.find(h =>
-    h.type === 'song' &&
-    h.result.primary_artist.name.toLowerCase().includes(artistName.toLowerCase())
-  ) ?? hits[0];
-
-  return best?.result.url ?? null;
-}
-
-async function scrapeLyricsFromPage(pageUrl: string): Promise<string | null> {
   try {
-    const res = await fetch(pageUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (compatible; lyricline/0.1; +https://github.com/you/lyricline)',
-      },
-    });
-
+    const url = `${GENIUS_API}/search?q=${encodeURIComponent(artistName)}`;
+    const res = await fetch(url, { headers: GENIUS_HEADERS });
     if (!res.ok) return null;
 
-    const html = await res.text();
-    const $    = cheerio.load(html);
+    const data = await res.json() as {
+      response: {
+        hits: Array<{
+          result: {
+            primary_artist: { name: string; image_url: string };
+          };
+        }>;
+      };
+    };
 
-    // Genius wraps lyrics in [data-lyrics-container="true"] divs
-    const containers = $('[data-lyrics-container="true"]');
-    if (!containers.length) return null;
+    const hits = data.response.hits;
+    if (!hits.length) return null;
 
-    const lines: string[] = [];
+    const nameLower = artistName.toLowerCase();
+    const best = hits.find(h =>
+      h.result.primary_artist.name.toLowerCase().includes(nameLower) ||
+      nameLower.includes(h.result.primary_artist.name.toLowerCase())
+    ) ?? hits[0];
 
-    containers.each((_i, el) => {
-      // Replace <br> with newlines before extracting text
-      $(el).find('br').replaceWith('\n');
-
-      // Skip annotation links but keep their text
-      $(el).find('a').each((_j, a) => {
-        $(a).replaceWith($(a).text());
-      });
-
-      const text = $(el).text();
-      lines.push(text.trim());
-    });
-
-    const raw = lines
-      .join('\n\n')
-      .replace(/\[.*?\]/g, '')   // remove section headers like [Verse 1]
-      .replace(/\n{3,}/g, '\n\n') // collapse excessive blank lines
-      .trim();
-
-    return raw.length > 20 ? raw : null;
-  } catch (err) {
-    console.warn('[genius] scrape error:', (err as Error).message);
+    const imageUrl = best?.result.primary_artist.image_url ?? null;
+    if (imageUrl) await cacheSet(cacheKey, imageUrl, -1);
+    return imageUrl;
+  } catch {
     return null;
   }
 }
 
-// ── Genius API types (partial) ────────────────────────────────────────────────
+// ── Lyric URL ─────────────────────────────────────────────────────────────────
 
-interface GeniusSearchResponse {
-  response: {
-    hits: Array<{
-      type: string;
-      result: {
-        url:             string;
-        title:           string;
-        primary_artist:  { name: string };
-      };
-    }>;
+export async function getLyricUrl(title: string, artist: string): Promise<string | null> {
+  const cacheKey = CacheKey.songLyrics(`url:${title}:${artist}`);
+  const cached   = await cacheGet<string>(cacheKey);
+  if (cached !== null) return cached;
+
+  const q   = `${title} ${artist}`;
+  const url = `${GENIUS_API}/search?q=${encodeURIComponent(q)}`;
+  const res = await fetch(url, { headers: GENIUS_HEADERS });
+  if (!res.ok) return null;
+
+  const data = await res.json() as {
+    response: { hits: Array<{ result: { url: string; primary_artist: { name: string } } }> };
   };
+
+  const hits = data.response.hits;
+  if (!hits.length) return null;
+
+  const artistLower = artist.toLowerCase();
+  const match = hits.find(h =>
+    h.result.primary_artist.name.toLowerCase().includes(artistLower) ||
+    artistLower.includes(h.result.primary_artist.name.toLowerCase())
+  ) ?? hits[0];
+
+  const lyricUrl = match?.result.url ?? null;
+  if (lyricUrl) await cacheSet(cacheKey, lyricUrl, -1);
+  return lyricUrl;
+}
+
+// ── Lyric scrape ──────────────────────────────────────────────────────────────
+
+export async function scrapeLyrics(lyricUrl: string): Promise<string | null> {
+  const cacheKey = CacheKey.songLyrics(`scraped:${lyricUrl}`);
+  const cached   = await cacheGet<string>(cacheKey);
+  if (cached !== null) return cached;
+
+  const res = await fetch(lyricUrl, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; lyricline/0.1)' },
+  });
+  if (!res.ok) return null;
+
+  const html = await res.text();
+  const $    = cheerio.load(html);
+
+  const parts: string[] = [];
+  $('[data-lyrics-container="true"]').each((_, el) => {
+    const container = $(el);
+    container.find('br').replaceWith('\n');
+    container.find('[class^="LyricsEditInfo"]').remove();
+    container.find('[class^="InlineAnnotationContent"]').remove();
+    const text = container.text().trim();
+    if (text) parts.push(text);
+  });
+
+  const lyrics = parts.join('\n\n').trim() || null;
+  if (lyrics) await cacheSet(cacheKey, lyrics, -1);
+  return lyrics;
 }

@@ -1,21 +1,33 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
-import { z } from 'zod';
 import { searchArtists } from '../services/musicbrainz.js';
+import { getArtistImageFromGenius } from '../services/genius.js';
 
 export const searchRouter = Router();
 
-const limiter = rateLimit({ windowMs: 60_000, max: 30, standardHeaders: true });
-
-const querySchema = z.object({
-  q: z.string().min(1).max(100).trim(),
-});
-
-searchRouter.get('/', limiter, async (req, res, next) => {
+searchRouter.get('/', async (req, res, next) => {
   try {
-    const { q } = querySchema.parse(req.query);
+    const q = String(req.query['q'] ?? '').trim();
+    if (!q) { res.json([]); return; }
+
+    // MusicBrainz results — this is the core, must succeed
     const results = await searchArtists(q);
-    res.json(results);
+
+    // Enrich with Genius images — parallel, 2s timeout per artist, never throws
+    const withImages = await Promise.all(
+      results.map(async (r) => {
+        try {
+          const imageUrl = await Promise.race([
+            getArtistImageFromGenius(r.name),
+            new Promise<null>(resolve => setTimeout(() => resolve(null), 2000)),
+          ]);
+          return { ...r, imageUrl };
+        } catch {
+          return { ...r, imageUrl: null };
+        }
+      })
+    );
+
+    res.json(withImages);
   } catch (err) {
     next(err);
   }

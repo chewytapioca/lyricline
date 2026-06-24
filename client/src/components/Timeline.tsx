@@ -1,11 +1,33 @@
 import { useState } from 'react';
-import { SENTIMENT_COLOR, SENTIMENT_BG, SENTIMENT_TEXT, SENTIMENT_DOT, albumMoodSummary, sentimentBarWidth } from '../lib/sentiment';
 import type { Artist, Album, Song } from '@shared/types';
 
+const C = {
+  card:   '#faf8f3',
+  bg2:    '#ede6d8',
+  border: '#d8cfc0',
+  brownl: '#c4a882',
+  brownd: '#5c3d28',
+  brown:  '#8b6a50',
+  ink2:   '#7a6a58',
+  ink3:   '#b0a090',
+  cream:  '#fdf9f2',
+};
+
+const MOOD_COLOR: Record<string, string> = {
+  positive: '#a8c8a0',
+  neutral:  '#c8b890',
+  negative: '#b0a0c8',
+};
+const MOOD_WORD: Record<string, string> = {
+  positive: 'joyful',
+  neutral:  'mellow',
+  negative: 'dark',
+};
+
 interface Props {
-  artist:         Artist;
+  artist: Artist;
   selectedSongId: string | null;
-  onSongClick:    (songMbid: string, title: string) => void;
+  onSongClick: (mbid: string, title: string) => void;
 }
 
 export function Timeline({ artist, selectedSongId, onSongClick }: Props) {
@@ -14,52 +36,43 @@ export function Timeline({ artist, selectedSongId, onSongClick }: Props) {
   );
 
   return (
-    <div>
-      {/* Artist header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+    <div style={{ fontFamily: "'Happy Monkey', cursive" }}>
+
+      {/* artist header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        marginBottom: 20, padding: '12px 14px',
+        background: C.card, border: `1px solid ${C.border}`,
+        borderRadius: 12,
+      }}>
+        {/* ♪ note instead of pink flower */}
         <div style={{
-          width: 52, height: 52, borderRadius: '50%',
-          background: '#F4C0D1', border: '2px solid #ED93B1',
+          width: 40, height: 40, borderRadius: 10,
+          background: C.bg2, border: `1px solid ${C.border}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, flexShrink: 0,
+          fontSize: 18, color: C.brownl, flexShrink: 0,
         }}>
-          ✿
+          ♪
         </div>
         <div>
-          <div style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--ink)' }}>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 14, fontWeight: 700, color: C.brownd }}>
             {artist.name}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', marginTop: 3 }}>
+          <div style={{ fontSize: 11, color: C.ink3, marginTop: 2 }}>
             {artist.albums.length} releases
-            {artist.languages.length > 0 && (
-              <span style={{
-                marginLeft: 8, background: '#EEEDFE', color: '#534AB7',
-                borderRadius: 999, padding: '1px 7px', fontSize: '0.68rem', fontWeight: 500,
-              }}>
-                {artist.languages.map(l => l.toUpperCase()).join(' / ')}
-              </span>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Timeline */}
-      <div style={{ position: 'relative', paddingLeft: 20 }}>
-        {/* Vertical line */}
-        <div style={{
-          position: 'absolute', left: 7, top: 0, bottom: 0,
-          width: 1, background: 'var(--border)',
-        }} />
-
-        {artist.albums.map(album => (
+      {/* album list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {artist.albums.map((album) => (
           <AlbumRow
             key={album.id}
             album={album}
-            expanded={expandedAlbum === album.id}
+            isExpanded={expandedAlbum === album.id}
             selectedSongId={selectedSongId}
-            onToggle={() => setExpandedAlbum(
-              expandedAlbum === album.id ? null : album.id
-            )}
+            onToggle={() => setExpandedAlbum(prev => prev === album.id ? null : album.id)}
             onSongClick={onSongClick}
           />
         ))}
@@ -68,99 +81,77 @@ export function Timeline({ artist, selectedSongId, onSongClick }: Props) {
   );
 }
 
-function AlbumRow({
-  album, expanded, selectedSongId, onToggle, onSongClick,
-}: {
-  album:          Album;
-  expanded:       boolean;
+function AlbumRow({ album, isExpanded, selectedSongId, onToggle, onSongClick }: {
+  album: Album;
+  isExpanded: boolean;
   selectedSongId: string | null;
-  onToggle:       () => void;
-  onSongClick:    (mbid: string, title: string) => void;
+  onToggle: () => void;
+  onSongClick: (mbid: string, title: string) => void;
 }) {
-  const mood     = album.dominantMood;
-  const dotColor = mood ? SENTIMENT_DOT[mood] : '#F4C0D1';
+  const mood = album.dominantMood;
 
   return (
-    <div style={{ marginBottom: 12 }}>
-      {/* Dot on the timeline */}
-      <div style={{
-        position: 'absolute', left: 1,
-        width: 13, height: 13, borderRadius: '50%',
-        background: dotColor, border: '2px solid var(--bg)',
-        marginTop: 14,
-      }} />
+    <div style={{
+      background: C.card, border: `1px solid ${C.border}`,
+      borderRadius: 10, overflow: 'hidden',
+    }}>
+      {/* album header row */}
+      <button onClick={onToggle} style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '10px 14px', border: 'none', background: 'transparent',
+        cursor: 'pointer', textAlign: 'left',
+      }}>
+        {/* album art or placeholder */}
+        {album.coverUrl ? (
+          <img src={album.coverUrl} alt={album.title}
+            style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', border: `1px solid ${C.border}`, flexShrink: 0 }}
+          />
+        ) : (
+          <div style={{
+            width: 36, height: 36, borderRadius: 6, flexShrink: 0,
+            background: C.bg2, border: `1px solid ${C.border}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, color: C.brownl,
+          }}>♩</div>
+        )}
 
-      {/* Album card */}
-      <div
-        onClick={onToggle}
-        style={{
-          background: expanded ? 'white' : 'var(--card)',
-          border: `${expanded ? '1.5px solid #ED93B1' : '0.5px solid var(--border)'}`,
-          borderRadius: 14, padding: '12px 14px',
-          cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
-        }}
-        onMouseEnter={e => !expanded && (e.currentTarget.style.borderColor = '#ED93B1')}
-        onMouseLeave={e => !expanded && (e.currentTarget.style.borderColor = 'var(--border)')}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--ink)' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: 12.5, fontWeight: 600, color: C.brownd,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
             {album.title}
-          </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--ink-muted)' }}>
+          </div>
+          <div style={{ fontSize: 10.5, color: C.ink3, marginTop: 1 }}>
             {album.year} · {album.type}
-          </span>
+          </div>
         </div>
 
-        {mood && album.sentimentBreakdown && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ flex: 1, height: 5, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%', borderRadius: 999,
-                  width: `${sentimentBarWidth(album.sentimentBreakdown.positive)}%`,
-                  background: SENTIMENT_COLOR[mood],
-                  transition: 'width 0.6s ease',
-                }} />
-              </div>
-              <span style={{ fontSize: '0.72rem', color: SENTIMENT_TEXT[mood], minWidth: 60 }}>
-                {albumMoodSummary(album)}
-              </span>
-            </div>
-          </>
+        {mood && (
+          <span style={{
+            fontSize: 9.5, padding: '2px 8px', borderRadius: 99,
+            background: `${MOOD_COLOR[mood]}33`,
+            color: MOOD_COLOR[mood], border: `1px solid ${MOOD_COLOR[mood]}66`,
+            fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600,
+            flexShrink: 0,
+          }}>
+            {MOOD_WORD[mood]}
+          </span>
         )}
 
-        {!mood && (
-          <div style={{ fontSize: '0.72rem', color: 'var(--ink-muted)', fontStyle: 'italic' }}>
-            click a song to analyse →
-          </div>
-        )}
+        <span style={{ color: C.ink3, fontSize: 10, flexShrink: 0 }}>
+          {isExpanded ? '▲' : '▼'}
+        </span>
+      </button>
 
-        {/* Tags */}
-        {album.songs.some(s => s.languages.length > 0) && (
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>
-            {[...new Set(album.songs.flatMap(s => s.languages))].map(lang => (
-              <span key={lang} style={{
-                fontSize: '0.65rem', padding: '2px 7px',
-                borderRadius: 999, border: '0.5px solid var(--border)',
-                color: 'var(--ink-muted)',
-              }}>
-                {lang.toUpperCase()}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Song list — expanded */}
-      {expanded && (
-        <div style={{ marginTop: 6, paddingLeft: 4 }}>
-          {album.songs.map(song => (
-            <SongRow
-              key={song.id}
-              song={song}
-              isSelected={song.id === selectedSongId}
-              onClick={() => onSongClick(song.id, song.title)}
-            />
+      {/* song list */}
+      {isExpanded && (
+        <div style={{ borderTop: `1px solid ${C.border}`, padding: '6px 0' }}>
+          {album.songs.length === 0 ? (
+            <div style={{ padding: '8px 14px', fontSize: 11, color: C.ink3 }}>no tracks found</div>
+          ) : album.songs.map(song => (
+            <SongRow key={song.id} song={song} isSelected={selectedSongId === song.id} onClick={() => onSongClick(song.id, song.title)} />
           ))}
         </div>
       )}
@@ -168,47 +159,32 @@ function AlbumRow({
   );
 }
 
-function SongRow({ song, isSelected, onClick }: {
-  song:       Song;
-  isSelected: boolean;
-  onClick:    () => void;
-}) {
+function SongRow({ song, isSelected, onClick }: { song: Song; isSelected: boolean; onClick: () => void }) {
   const mood = song.sentiment?.label ?? null;
 
   return (
-    <div
-      onClick={onClick}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '7px 10px', borderRadius: 8, marginBottom: 4,
-        cursor: 'pointer',
-        background: isSelected ? '#FFF0F6' : 'var(--card)',
-        border: `0.5px solid ${isSelected ? '#ED93B1' : 'transparent'}`,
-        transition: 'background 0.15s',
-      }}
-      onMouseEnter={e => !isSelected && (e.currentTarget.style.background = 'var(--bg)')}
-      onMouseLeave={e => !isSelected && (e.currentTarget.style.background = 'var(--card)')}
+    <button onClick={onClick} style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+      padding: '6px 14px', border: 'none', textAlign: 'left',
+      background: isSelected ? C.bg2 : 'transparent',
+      borderLeft: isSelected ? `3px solid ${C.brownl}` : '3px solid transparent',
+      cursor: 'pointer', transition: 'background 0.1s',
+    }}
+    onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = `${C.bg2}88`; }}
+    onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
     >
-      <span style={{ fontSize: '0.7rem', color: 'var(--ink-muted)', minWidth: 18 }}>
+      <span style={{ fontSize: 10, color: C.ink3, minWidth: 18, textAlign: 'right', flexShrink: 0 }}>
         {song.position}
       </span>
-      <span style={{ fontSize: '0.8rem', color: 'var(--ink)', flex: 1 }}>
+      <span style={{ fontSize: 12, color: C.brownd, flex: 1, fontFamily: "'Happy Monkey', cursive" }}>
         {song.title}
       </span>
       {mood && (
-        <div style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: SENTIMENT_COLOR[mood], flexShrink: 0,
-        }} />
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: MOOD_COLOR[mood], flexShrink: 0 }} />
       )}
-      {song.languages.length > 0 && (
-        <span style={{
-          fontSize: '0.6rem', background: '#EEEDFE', color: '#534AB7',
-          borderRadius: 999, padding: '1px 5px',
-        }}>
-          {song.languages[0]?.toUpperCase()}
-        </span>
+      {!mood && (
+        <span style={{ fontSize: 10, color: C.ink3, flexShrink: 0 }}>analyse →</span>
       )}
-    </div>
+    </button>
   );
 }
