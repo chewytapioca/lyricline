@@ -2,6 +2,9 @@
 
 explore any artist's full discography as a visual timeline with multilingual lyric sentiment analysis. built for k-pop, j-pop, english, and mixed-language artists.
 
+![landing](docs/landing.png)
+![song](docs/song.png)
+
 > search an artist → browse albums on a timeline → click a song → see lyrics analyzed verse by verse with mood scoring
 
 ---
