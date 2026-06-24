@@ -7,30 +7,28 @@ import type { Artist } from '../../../shared/types.js';
 
 export const artistRouter = Router();
 
-const paramsSchema = z.object({
-  mbid: z.string().uuid(),
-});
+const paramsSchema = z.object({ mbid: z.string().min(1) });
+const querySchema  = z.object({ name: z.string().optional() });
 
-/**
- * GET /api/artist/:mbid
- * Returns artist metadata + full album/track list.
- * Sentiment scores are null at this stage — fetched lazily per-song.
- */
 artistRouter.get('/:mbid', async (req, res, next) => {
   try {
     const { mbid } = paramsSchema.parse(req.params);
+    const { name } = querySchema.parse(req.query);
 
     const cacheKey = CacheKey.artist(mbid);
     const cached   = await cacheGet<Artist>(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) {
+      // patch name if it was empty when originally cached
+      if (name && !cached.name) cached.name = name;
+      return res.json(cached);
+    }
 
     const albums = await getAlbums(mbid);
 
-    // Collect unique languages across all future sentiment results (empty for now)
     const artist: Artist = {
       id:        mbid,
-      name:      '',        // caller should pass name via query param or we do a separate MB call
-      sortName:  '',
+      name:      name ?? '',
+      sortName:  name ?? '',
       country:   null,
       genres:    [],
       albums,

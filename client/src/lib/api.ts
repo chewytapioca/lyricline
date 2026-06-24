@@ -16,8 +16,8 @@ export const api = {
   search: (q: string) =>
     apiFetch<SearchResult[]>(`/search?q=${encodeURIComponent(q)}`),
 
-  artist: (mbid: string) =>
-    apiFetch<Artist>(`/artist/${mbid}`),
+  artist: (mbid: string, name: string) =>
+    apiFetch<Artist>(`/artist/${mbid}?name=${encodeURIComponent(name)}`),
 
   song: (mbid: string, title: string, artist: string) =>
     apiFetch<SongDetail>(

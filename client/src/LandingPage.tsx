@@ -1,7 +1,7 @@
+import { useRef } from 'react';
 import { SearchBar } from './components/SearchBar';
 import type { SearchResult } from '@shared/types';
 
-/* ── palette ── */
 const C = {
   bg:      '#f5f0e8',
   bg2:     '#ede6d8',
@@ -18,7 +18,6 @@ const C = {
 
 interface Props { onArtistSelect: (r: SearchResult) => void; }
 
-/* ── waveform ── */
 function Waveform() {
   const peaks = [4,7,11,5,13,9,4,11,6,14,4,9,12,4,8];
   return (
@@ -35,15 +34,11 @@ function Waveform() {
   );
 }
 
-/* ── floating kaomoji notes ── */
-const KAOMOJI = ['♪(๑ᴖ◡ᴖ)♪', 'ヾ(＾-＾)ノ♫', '(ˊ꒳ˋ)♩', '(◕‿◕)♬', '♩˚₊·', '·˚♫', '(*˘︶˘*)♪'];
+const KAOMOJI = ['♪(๑ᴖ◡ᴖ)♪','ヾ(＾-＾)ノ♫','(ˊ꒳ˋ)♩','(◕‿◕)♬','♩˚₊·','·˚♫','(*˘︶˘*)♪'];
 const FLOATERS = Array.from({length:8},(_,i)=>({
   s: KAOMOJI[i%KAOMOJI.length],
-  l: 3+(i*13)%85,
-  b: 5+(i*19)%55,
-  d: 5+(i*0.7)%3,
-  delay: i*1.2,
-  sz: 9+(i*2)%5,
+  l: 3+(i*13)%85, b: 5+(i*19)%55,
+  d: 5+(i*0.7)%3, delay: i*1.2, sz: 9+(i*2)%5,
 }));
 
 const TAGS = ['ateez','bts','exo','iu','loona','stray kids','woodz'];
@@ -51,11 +46,14 @@ const TAGS = ['ateez','bts','exo','iu','loona','stray kids','woodz'];
 const FEATURES = [
   { icon:'(ᵔ◡ᵔ)', label:'timeline',     desc:'albums by mood, in order'     },
   { icon:'(´▽`)', label:'sentiment',    desc:'joyful · mellow · dark'        },
-  { icon:'(｡◕‿◕)', label:'read-along',  desc:'lyrics scroll with you'        },
+  { icon:'(｡◕‿◕)',label:'read-along',   desc:'lyrics scroll with you'        },
   { icon:'(◠‿◠)', label:'multilingual', desc:'k-pop, j-pop, english, mixed'  },
 ];
 
 export default function LandingPage({ onArtistSelect }: Props) {
+  // ref to the SearchBar's hidden input so we can set its value for quick tags
+  const searchRef = useRef<{ setQuery: (q: string) => void } | null>(null);
+
   return (
     <div style={{
       minHeight:'100vh', background:'transparent',
@@ -77,21 +75,20 @@ export default function LandingPage({ onArtistSelect }: Props) {
         ))}
       </div>
 
-      {/* ── main card (tumblr/carrd style) ── */}
+      {/* main card */}
       <div style={{
         position:'relative', zIndex:1,
         background: C.card,
         border:`1.5px solid ${C.border}`,
-        borderRadius:18, overflow:'visible',
+        borderRadius:18,
         width:'100%', maxWidth:520,
         boxShadow:'0 4px 24px rgba(90,60,30,0.10), 0 1px 4px rgba(90,60,30,0.07)',
       }}>
 
-        {/* card top bar */}
+        {/* top bar */}
         <div style={{
-          background: C.bg2,
-          borderBottom:`1px solid ${C.border}`,
-          padding:'10px 18px',
+          background: C.bg2, borderBottom:`1px solid ${C.border}`,
+          padding:'10px 18px', borderRadius:'17px 17px 0 0',
           display:'flex', alignItems:'center', justifyContent:'space-between',
         }}>
           <span style={{fontFamily:"'Space Grotesk', sans-serif", fontSize:13, fontWeight:700, color:C.brownd, letterSpacing:'-0.01em'}}>
@@ -100,7 +97,7 @@ export default function LandingPage({ onArtistSelect }: Props) {
           <span style={{fontSize:11, color:C.ink3}}>♪ ♩ ♫ ♬</span>
         </div>
 
-        {/* iPod + cd image area */}
+        {/* iPod + cd */}
         <div style={{
           background:`linear-gradient(180deg, ${C.bg2} 0%, ${C.cream} 100%)`,
           borderBottom:`1px solid ${C.border}`,
@@ -108,19 +105,14 @@ export default function LandingPage({ onArtistSelect }: Props) {
           display:'flex', flexDirection:'column', alignItems:'center',
           position:'relative', overflow:'hidden',
         }}>
-          {/* soft vignette dots */}
           <div aria-hidden="true" style={{
             position:'absolute', inset:0, pointerEvents:'none',
             backgroundImage:`radial-gradient(circle, ${C.brownl}22 1px, transparent 1px)`,
             backgroundSize:'16px 16px',
           }}/>
 
-          {/* iPod + cd group */}
           <div style={{position:'relative', display:'flex', alignItems:'flex-end', justifyContent:'center', marginBottom:10, zIndex:1}}>
-            <div style={{
-              animation:'bob 4s ease-in-out infinite',
-              filter:'drop-shadow(0 8px 20px rgba(90,60,30,0.18))',
-            }}>
+            <div style={{animation:'bob 4s ease-in-out infinite', filter:'drop-shadow(0 8px 20px rgba(90,60,30,0.18))'}}>
               <img src="/music_player.png" alt="kawaii iPod"
                 style={{width:160, height:'auto', display:'block'}}
                 draggable={false} loading="eager" decoding="sync"
@@ -138,48 +130,37 @@ export default function LandingPage({ onArtistSelect }: Props) {
             </div>
           </div>
 
-          {/* now playing row */}
-          <div style={{
-            display:'flex', alignItems:'center', gap:6,
-            fontSize:10.5, color:C.ink3, zIndex:1,
-          }}>
-            <span style={{
-              display:'inline-block', width:6, height:6, borderRadius:'50%',
-              background:C.brown, animation:'blink 2s ease-in-out infinite',
-            }}/>
+          <div style={{display:'flex', alignItems:'center', gap:6, fontSize:10.5, color:C.ink3, zIndex:1}}>
+            <div style={{width:6,height:6,borderRadius:'50%',background:C.brown,animation:'blink 2s ease-in-out infinite'}}/>
             now playing: your faves &nbsp;♪
           </div>
         </div>
 
-        {/* text + kaomoji section */}
-        <div style={{padding:'20px 22px 0', borderBottom:`1px solid ${C.border}`}}>
+        {/* tagline + feature tags */}
+        <div style={{padding:'18px 22px 0', borderBottom:`1px solid ${C.border}`}}>
           <div style={{display:'flex', alignItems:'baseline', gap:8, marginBottom:6}}>
             <span style={{fontSize:13, color:C.ink2}}>₊˚ · ✦ &nbsp;</span>
             <p style={{fontSize:13, color:C.ink2, lineHeight:1.6}}>
               search any artist. explore their discography. feel the mood of every verse.
             </p>
           </div>
-
-          {/* kaomoji tags row */}
           <div style={{display:'flex', flexWrap:'wrap', gap:5, paddingBottom:16}}>
             {['♪ timeline','♩ sentiment','♫ read-along','♬ multilingual'].map(t=>(
               <span key={t} style={{
                 fontSize:10, padding:'2px 10px', borderRadius:99,
                 border:`1px solid ${C.border}`,
                 color:C.ink3, background:C.bg2,
-                fontFamily:"'Happy Monkey', cursive",
               }}>{t}</span>
             ))}
           </div>
         </div>
 
-        {/* search section */}
+        {/* search */}
         <div style={{padding:'18px 22px 16px', borderBottom:`1px solid ${C.border}`}}>
           <div style={{
             display:'flex', alignItems:'center', gap:10,
             background:C.bg2, border:`1px solid ${C.border}`,
-            borderRadius:10, padding:'8px 12px',
-            marginBottom:10,
+            borderRadius:10, padding:'8px 12px', marginBottom:10,
             boxShadow:`inset 0 1px 3px rgba(90,60,30,0.06)`,
           }}>
             <Waveform/>
@@ -188,11 +169,21 @@ export default function LandingPage({ onArtistSelect }: Props) {
             </div>
           </div>
 
-          {/* quick tags */}
+          {/* quick tags — now use data-tag attr and dispatch an input event */}
           <div style={{display:'flex', flexWrap:'wrap', gap:5}}>
             {TAGS.map(t=>(
               <button key={t}
-                onClick={()=>onArtistSelect({id:'',name:t} as SearchResult)}
+                onClick={async () => {
+                  // Search MB for the tag and select top result
+                  try {
+                    const res = await fetch(`/api/search?q=${encodeURIComponent(t)}`);
+                    const results: SearchResult[] = await res.json();
+                    if (results[0]) onArtistSelect(results[0]);
+                  } catch {
+                    // fallback: pass name only, artist route will handle gracefully
+                    onArtistSelect({ id: '', name: t, country: null, genres: [], albumCount: 0, imageUrl: null } as SearchResult);
+                  }
+                }}
                 style={{
                   fontFamily:"'Happy Monkey', cursive",
                   fontSize:10, padding:'3px 10px', borderRadius:99,
@@ -215,7 +206,7 @@ export default function LandingPage({ onArtistSelect }: Props) {
           </div>
         </div>
 
-        {/* feature rows — carrd note style */}
+        {/* feature rows */}
         <div style={{padding:'14px 22px 18px'}}>
           {FEATURES.map((f,i)=>(
             <div key={f.label} style={{
@@ -233,30 +224,24 @@ export default function LandingPage({ onArtistSelect }: Props) {
           ))}
         </div>
 
-        {/* notes count footer — tumblr style */}
+        {/* footer */}
         <div style={{
-          background:C.bg2, borderTop:`1px solid ${C.border}`, borderRadius:'0 0 17px 17px',
-          padding:'9px 18px',
+          background:C.bg2, borderTop:`1px solid ${C.border}`,
+          padding:'9px 18px', borderRadius:'0 0 17px 17px',
           display:'flex', alignItems:'center', justifyContent:'space-between',
         }}>
           <span style={{fontSize:11, color:C.ink2, fontFamily:"'Space Grotesk', sans-serif", fontWeight:600}}>
             ∞ songs analysed
           </span>
-          <div style={{display:'flex', gap:12, color:C.ink3, fontSize:12}}>
-            <a href="https://github.com/chewytapioca/lyricline"
-              style={{color:C.ink3, textDecoration:'none', fontSize:11, fontFamily:"'Space Grotesk', sans-serif"}}
-              onMouseEnter={e=>e.currentTarget.style.color=C.brown}
-              onMouseLeave={e=>e.currentTarget.style.color=C.ink3}
-            >github ↗</a>
-          </div>
+          <a href="https://github.com/chewytapioca/lyricline"
+            style={{color:C.ink3, textDecoration:'none', fontSize:11, fontFamily:"'Space Grotesk', sans-serif"}}
+            onMouseEnter={e=>e.currentTarget.style.color=C.brown}
+            onMouseLeave={e=>e.currentTarget.style.color=C.ink3}
+          >github ↗</a>
         </div>
       </div>
 
-      {/* below card caption */}
-      <div style={{
-        marginTop:14, fontSize:10.5, color:C.ink3, zIndex:1,
-        fontFamily:"'Happy Monkey', cursive", letterSpacing:'0.04em',
-      }}>
+      <div style={{marginTop:14, fontSize:10.5, color:C.ink3, zIndex:1, fontFamily:"'Happy Monkey', cursive", letterSpacing:'0.04em'}}>
         ( made with ♡ )
       </div>
     </div>

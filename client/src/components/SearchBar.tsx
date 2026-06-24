@@ -165,7 +165,7 @@ export function SearchBar({ onSelect }: Props) {
                 fontSize: 10, color: C.ink3, flexShrink: 0,
                 fontFamily: "'Space Grotesk', sans-serif",
               }}>
-                {r.albumCount} releases
+                {r.genres[0] ?? 'artist'}
               </span>
             </button>
           ))}
