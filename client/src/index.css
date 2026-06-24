@@ -1,0 +1,44 @@
+/* ── Kawaii design tokens ──────────────────────────────────────────────────── */
+:root {
+  --font:        'DM Sans', -apple-system, sans-serif;
+  --bg:          #FFF8FC;
+  --card:        #FFF2F8;
+  --border:      #F2D4E4;
+  --ink:         #3D2030;
+  --ink-muted:   #9C7085;
+  --ink-xlight:  #C4A0B5;
+  --pink:        #D4537E;
+  --pink-light:  #ED93B1;
+  --pink-pale:   #FBE8F2;
+  --green:       #7CB98F;
+  --purple:      #9B8EC4;
+  --radius:      16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thin scrollbar */
+::-webkit-scrollbar        { width: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 999px; }
+
+a { color: var(--pink); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+input, button { font-family: inherit; font-size: inherit; }
+input:focus { outline: none; }
+
+/* Soft dot pattern background */
+body {
+  background-image: radial-gradient(var(--border) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-attachment: fixed;
+}
